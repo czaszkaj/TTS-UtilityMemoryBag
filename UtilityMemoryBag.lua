@@ -35,21 +35,18 @@ Do not create buttons or add tagged objects to bag.
 add_select_ignore_tags = true -- use to turn on/off the addon
 add_select_ignore_tags_id = 4
 add_select_ignore_tags_status = false
-add_select_ignore_tags_str = "Ignore tags:"
 --[[
 Select tagged obejcts by default
 --]]
 add_select_tag = true -- use to turn on/off the addon
 add_select_tag_id = 5
 add_select_tag_status = false
-add_select_tag_str = "Select Tags:"
 --[[
 Select all objects from provided zone guid
 --]]
 add_select_zone = true -- use to turn on/off the addon
 add_select_zone_id = 6
 add_select_zone_status = false
-add_select_tag_str = "Select Zones:"
 --[[
 is anny selection addon on
 used also for enabling/disablig Buttons
@@ -60,7 +57,6 @@ add_select_addon_on =
   add_select_zone
 add_select_addon_on_id = 7
 add_select_addon_on_status = true
-add_select_addon_on_str = "Use Buttons"
 
 --[[ Memory Bag Groups ]]-------------------------------------------------------
 --[[
@@ -497,24 +493,24 @@ function createSetupActionButtons(move)
         if add_select_ignore_tags == true then
             add_position[3] = add_position[3] + distance
             self.createButton({
-                label=add_select_ignore_tags_str, click_function="buttonClick_ignoreTags", function_owner=self,
-                position=add_position, rotation={0,180,0}, height=350, width=1400,
+                label="Ignore tags:", click_function="buttonClick_ignoreTags", function_owner=self,
+                position=add_position, rotation={0,180,0}, height=350, width=1500,
                 font_size=250, font_color=get_bg_color(add_select_ignore_tags_status), color={0,0,0}
             })
         end
         if add_select_tag == true then
             add_position[3] = add_position[3] + distance
             self.createButton({
-                label=add_select_tag_str, click_function="buttonClick_selectTags", function_owner=self,
-                position=add_position, rotation={0,180,0}, height=350, width=1400,
+                label="Select Tags:", click_function="buttonClick_selectTags", function_owner=self,
+                position=add_position, rotation={0,180,0}, height=350, width=1500,
                 font_size=250, font_color=get_bg_color(add_select_tag_status), color={0,0,0}
             })
         end
         if add_select_zone == true then
             add_position[3] = add_position[3] + distance
             self.createButton({
-                label=add_select_tag_str, click_function="buttonClick_selectZones", function_owner=self,
-                position=add_position, rotation={0,180,0}, height=350, width=1300,
+                label="Select Zones:", click_function="buttonClick_selectZones", function_owner=self,
+                position=add_position, rotation={0,180,0}, height=350, width=1500,
                 font_size=250, font_color=get_bg_color(add_select_zone_status), color={0,0,0}
             })
         end
@@ -522,8 +518,8 @@ function createSetupActionButtons(move)
             add_position[3] = add_position[3] + distance
             add_position[1] = 0
             self.createButton({
-                label=add_select_addon_on_str, click_function="buttonClick_createButtons", function_owner=self,
-                position=add_position, rotation={0,180,0}, height=350, width=1400,
+                label="Use Buttons", click_function="buttonClick_createButtons", function_owner=self,
+                position=add_position, rotation={0,180,0}, height=350, width=1500,
                 font_size=250, font_color=get_bg_color(add_select_addon_on_status), color={0,0,0}
             })
         end
@@ -1002,7 +998,7 @@ function buttonClick_selectTags()
 end
 
 function buttonClick_selectZones()
-  buttonClick_addon("add_select_addon_on")
+  buttonClick_addon("add_select_zone")
     -- TODO
 end
 
