@@ -15,11 +15,52 @@ CONFIG = {
 }
 
 --[[ Addons ]]-------------------------------------------------------
+-- button backgound color
+button_bg_color_on = {0,1,0}
+button_bg_color_off = {1,1,1}
+-- start position for additional button on top of the bag
+add_position = {2,0.3,2.2}
+-- distance between buttons
+distance = 0.8
+-- id of first button id of an objects, after bag buttons
+first_obj_button_id = 9
 --[[
 Remove buttons on object after selecting one to move.
 Helps for small objects that are smaller then sreated buttons.
 --]]
-clear_for_small_obj = true
+add_clear_for_small_obj = true
+--[[
+Do not create buttons or add tagged objects to bag.
+--]]
+add_select_ignore_tags = true -- use to turn on/off the addon
+add_select_ignore_tags_id = 4
+add_select_ignore_tags_status = false
+add_select_ignore_tags_str = "Ignore tags:"
+--[[
+Select tagged obejcts by default
+--]]
+add_select_tag = true -- use to turn on/off the addon
+add_select_tag_id = 5
+add_select_tag_status = false
+add_select_tag_str = "Select Tags:"
+--[[
+Select all objects from provided zone guid
+--]]
+add_select_zone = true -- use to turn on/off the addon
+add_select_zone_id = 6
+add_select_zone_status = false
+add_select_tag_str = "Select Zones:"
+--[[
+is anny selection addon on
+used also for enabling/disablig Buttons
+the name should be updated
+--]]
+add_select_addon_on =
+  add_select_tag or
+  add_select_zone
+add_select_addon_on_id = 7
+add_select_addon_on_status = true
+add_select_addon_on_str = "Use Buttons"
 
 --[[ Memory Bag Groups ]]-------------------------------------------------------
 --[[
@@ -289,6 +330,7 @@ function onload(saved_data)
         --Set up information off of loaded_data
         memoryList = loaded_data.ml
         memoryGroupName:set(loaded_data.groupName)
+        load_addon(loaded_data.addon)
     else
         --Set up information for if there is no saved saved data
         memoryList = {}
@@ -328,8 +370,8 @@ function buttonClick_transpose()
     moveList = {}
     self.clearButtons()
     self.clearInputs()
+    createSetupActionButtons(true) -- call first for const button ids
     createButtonsOnAllObjects(true)
-    createSetupActionButtons(true)
 end
 
 --Triggered by setup button,
@@ -338,8 +380,8 @@ function buttonClick_setup()
     memoryList = {}
     self.clearButtons()
     self.clearInputs()
+    createSetupActionButtons(false) -- call first for const button ids
     createButtonsOnAllObjects(false)
-    createSetupActionButtons(false)
 end
 
 function getAllObjectsInMemory()
@@ -357,8 +399,12 @@ end
 
 --Creates selection buttons on objects
 function createButtonsOnAllObjects(move)
+    if move == false and add_select_addon_on_status == false then
+      return
+    end
+
     buttonIndexMap = {}
-    local howManyButtons = 0
+    local howManyButtons = first_obj_button_id
 
     local objsToHaveButtons = {}
     if move == true then
@@ -446,6 +492,42 @@ function createSetupActionButtons(move)
                 font_size=250, color={0,0,0}, font_color={1,0.25,0.25}
             })
         end
+
+        --Addon Selection Buttons
+        if add_select_ignore_tags == true then
+            add_position[3] = add_position[3] + distance
+            self.createButton({
+                label=add_select_ignore_tags_str, click_function="buttonClick_ignoreTags", function_owner=self,
+                position=add_position, rotation={0,180,0}, height=350, width=1400,
+                font_size=250, font_color=get_bg_color(add_select_ignore_tags_status), color={0,0,0}
+            })
+        end
+        if add_select_tag == true then
+            add_position[3] = add_position[3] + distance
+            self.createButton({
+                label=add_select_tag_str, click_function="buttonClick_selectTags", function_owner=self,
+                position=add_position, rotation={0,180,0}, height=350, width=1400,
+                font_size=250, font_color=get_bg_color(add_select_tag_status), color={0,0,0}
+            })
+        end
+        if add_select_zone == true then
+            add_position[3] = add_position[3] + distance
+            self.createButton({
+                label=add_select_tag_str, click_function="buttonClick_selectZones", function_owner=self,
+                position=add_position, rotation={0,180,0}, height=350, width=1300,
+                font_size=250, font_color=get_bg_color(add_select_zone_status), color={0,0,0}
+            })
+        end
+        if add_select_addon_on == true then
+            add_position[3] = add_position[3] + distance
+            add_position[1] = 0
+            self.createButton({
+                label=add_select_addon_on_str, click_function="buttonClick_createButtons", function_owner=self,
+                position=add_position, rotation={0,180,0}, height=350, width=1400,
+                font_size=250, font_color=get_bg_color(add_select_addon_on_status), color={0,0,0}
+            })
+        end
+        --END: Addon Selection Buttons
     end
 
     self.createButton({
@@ -471,7 +553,7 @@ function buttonClick_selection(obj, move)
     theList = memoryList
     if move == true then
         theList = moveList
-        if clear_for_small_obj == false then
+        if add_clear_for_small_obj == false then
           if previousGuid ~= nil and previousGuid ~= selectedGuid then
               local prevObj = getObjectFromGUID(previousGuid)
               prevObj.highlightOff()
@@ -480,7 +562,7 @@ function buttonClick_selection(obj, move)
           end
           previousIndex = index
         end
-							 
+
     end
 
     if theList[selectedGuid] == nil then
@@ -505,7 +587,7 @@ function buttonClick_selection(obj, move)
         obj.highlightOff()
     end
 
-    if move == true  and clear_for_small_obj == true then
+    if move == true  and add_clear_for_small_obj == true then
       self.clearButtons()
       createSetupActionButtons(true)
     end
@@ -835,4 +917,104 @@ end
 
 function AllMemoryBagsInScene:getGuidList()
     return Global.getTable(self.NAME_OF_GLOBAL_VARIABLE) or {}
+end
+
+--[[
+Functions for addons
+--]]
+
+-- debug
+function list_button_id()
+  for _, obj in ipairs(self.getButtons()) do
+    if obj.label == nil then
+      print("ID[", obj.index, "] Label = ", obj.label)
+    end
+  end
+end
+
+-- save/load
+function load_addon(data)
+  load_addon_set(data, "add_clear_for_small_obj", false)
+  load_addon_set(data, "add_select_ignore_tags", true)
+  load_addon_set(data, "add_select_tag", true)
+  load_addon_set(data, "add_select_zone", true)
+  load_addon_set(data, "add_select_addon_on", true)
+end
+
+function load_addon_set(data, addon, suffix)
+  if data == nil or data[addon] == nil then
+    return
+  end
+
+  _G[addon] = data[addon]["on"]
+  if suffix == true then
+    _G[addon.."_id"] = data[addon]["id"]
+    _G[addon.."_status"] = data[addon]["status"]
+  end
+end
+
+function save_addon()
+  local data_to_save = {}
+  save_addon_get(data_to_save, "add_clear_for_small_obj", false)
+  save_addon_get(data_to_save, "add_select_ignore_tags", true)
+  save_addon_get(data_to_save, "add_select_tag", true)
+  save_addon_get(data_to_save, "add_select_zone", true)
+  save_addon_get(data_to_save, "add_select_addon_on", true)
+  return JSON.encoed(data_to_save)
+end
+
+function save_addon_get(data, addon, suffix)
+  data[addon] = {}
+  data[addon]["on"] = _G[addon]
+  if suffix == true then
+    data[addon]["id"] = _G[addon.."_id"]
+    data[addon]["status"] = _G[addon.."_status"]
+  end
+end
+
+-- button handling
+function get_bg_color(enable)
+  if enable == true then
+    return button_bg_color_on
+  else
+    return button_bg_color_off
+  end
+end
+
+function addon_updateButton(id, status)
+  self.editButton({index=id, font_color=get_bg_color(status)})
+end
+
+-- common button update operation
+function buttonClick_addon(addon)
+  _G[addon.."_status"] = not _G[addon.."_status"]
+  addon_updateButton(_G[addon.."_id"], _G[addon.."_status"])
+end
+
+function buttonClick_ignoreTags()
+  buttonClick_addon("add_select_ignore_tags")
+    -- TODO
+end
+
+function buttonClick_selectTags()
+  buttonClick_addon("add_select_tag")
+    -- TODO
+end
+
+function buttonClick_selectZones()
+  buttonClick_addon("add_select_addon_on")
+    -- TODO
+end
+
+function buttonClick_createButtons()
+  buttonClick_addon("add_select_addon_on")
+  removeButtonsOnAllObjects()
+  createButtonsOnAllObjects(false)
+end
+
+function removeButtonsOnAllObjects()
+  buttons = self.getButtons()
+  for i = #buttons - 1, first_obj_button_id, -1 do
+    self.removeButton(i)
+  end
 end
