@@ -14,6 +14,12 @@ CONFIG = {
     },
 }
 
+--[[ Addons ]]-------------------------------------------------------
+--[[
+Remove buttons on object after selecting one to move.
+Helps for small objects that are smaller then sreated buttons.
+--]]
+clear_for_small_obj = true
 
 --[[ Memory Bag Groups ]]-------------------------------------------------------
 --[[
@@ -465,13 +471,16 @@ function buttonClick_selection(obj, move)
     theList = memoryList
     if move == true then
         theList = moveList
-        if previousGuid ~= nil and previousGuid ~= selectedGuid then
-            local prevObj = getObjectFromGUID(previousGuid)
-            prevObj.highlightOff()
-            self.editButton({index=previousIndex, color=colorMove})
-            theList[previousGuid] = nil
+        if clear_for_small_obj == false then
+          if previousGuid ~= nil and previousGuid ~= selectedGuid then
+              local prevObj = getObjectFromGUID(previousGuid)
+              prevObj.highlightOff()
+              self.editButton({index=previousIndex, color=colorMove})
+              theList[previousGuid] = nil
+          end
+          previousIndex = index
         end
-        previousIndex = index
+							 
     end
 
     if theList[selectedGuid] == nil then
@@ -494,6 +503,11 @@ function buttonClick_selection(obj, move)
         self.editButton({index=index, color=color})
         theList[obj.getGUID()] = nil
         obj.highlightOff()
+    end
+
+    if move == true  and clear_for_small_obj == true then
+      self.clearButtons()
+      createSetupActionButtons(true)
     end
 end
 
