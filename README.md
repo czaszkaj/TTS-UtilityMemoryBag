@@ -11,3 +11,12 @@ Fork of [Memory Bag 2.0](https://steamcommunity.com/sharedfiles/filedetails/?id=
 * Track color tint when adding/removing objects (thanks RedKrieg)
 
 Want to contribute? Create an issue or fork the code on GitHub and submit a pull request.
+
+**Addons** by czaszkaj
+* addons can be tuned on/off from the script
+* enable/disable selection by buttons [DONE]
+* ignore objects with tags [ONGOING]
+* select objects with tags (by default) [ONGOING]
+* select objects from zones (by default) [ONGOING]
+**TODO**
+* use "class" instead of global variables
