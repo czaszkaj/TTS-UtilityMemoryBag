@@ -16,8 +16,9 @@ CONFIG = {
 
 --[[ Addons ]]-------------------------------------------------------
 -- button backgound color
-button_bg_color_on = {0,1,0}
-button_bg_color_off = {1,1,1}
+add_color_green = {0,1,0}
+add_color_black = {1,1,1}
+add_color_white = {0,0,0}
 -- start position for additional button on top of the bag
 add_position = {2,0.3,2.2}
 -- distance between buttons
@@ -494,37 +495,24 @@ function createSetupActionButtons(move)
 
         --Addon Selection Buttons
         if add_select_ignore_tags == true then
-            add_position[3] = add_position[3] + distance
-            self.createButton({
-                label="Ignore tags:", click_function="buttonClick_ignoreTags", function_owner=self,
-                position=add_position, rotation={0,180,0}, height=350, width=1500,
-                font_size=250, font_color=get_bg_color(add_select_ignore_tags_status), color={0,0,0}
-            })
+            addon_createButton(1, "ignoreTags",
+             {font_status = "ignore_tags"},
+             {label = "Ignore tags:"})
         end
         if add_select_tag == true then
-            add_position[3] = add_position[3] + distance
-            self.createButton({
-                label="Select Tags:", click_function="buttonClick_selectTags", function_owner=self,
-                position=add_position, rotation={0,180,0}, height=350, width=1500,
-                font_size=250, font_color=get_bg_color(add_select_tag_status), color={0,0,0}
-            })
+            addon_createButton(2, "selectTags",
+             {font_status = "select_tag"},
+             {label = "Select Tags:"})
         end
         if add_select_zone == true then
-            add_position[3] = add_position[3] + distance
-            self.createButton({
-                label="Select Zones:", click_function="buttonClick_selectZones", function_owner=self,
-                position=add_position, rotation={0,180,0}, height=350, width=1500,
-                font_size=250, font_color=get_bg_color(add_select_zone_status), color={0,0,0}
-            })
+            addon_createButton(3, "selectZones",
+             {font_status = "select_zone"},
+             {label = "Select Zones:"})
         end
         if add_select_addon_on == true then
-            add_position[3] = add_position[3] + distance
-            add_position[1] = 0
-            self.createButton({
-                label="Use Buttons", click_function="buttonClick_createButtons", function_owner=self,
-                position=add_position, rotation={0,180,0}, height=350, width=1500,
-                font_size=250, font_color=get_bg_color(add_select_addon_on_status), color={0,0,0}
-            })
+            addon_createButton(4, "useObjButtons",
+             {font_status = "addon_on", move=-add_position[1]},
+             {label = "Use Buttons"})
         end
         --END: Addon Selection Buttons
     end
@@ -918,20 +906,41 @@ function AllMemoryBagsInScene:getGuidList()
     return Global.getTable(self.NAME_OF_GLOBAL_VARIABLE) or {}
 end
 
---[[
+--[[----------------------------------------------------------------------------
 Functions for addons
---]]
+* save/load
+* select options
+--]]----------------------------------------------------------------------------
 
 -- debug
 function list_button_id()
   for _, obj in ipairs(self.getButtons()) do
-    if obj.label == nil then
+    if obj.label ~= nil then
       print("ID[", obj.index, "] Label = ", obj.label)
     end
   end
 end
 
+--------------------------------------------------------------------------------
+-- help funciton
+--------------------------------------------------------------------------------
+
+-- Copy table provided by Tyler from StackOverflow
+-- https://stackoverflow.com/questions/640642/how-do-you-copy-a-lua-table-by-value
+function copy(obj, seen)
+  if type(obj) ~= 'table' then return obj end
+  if seen and seen[obj] then return seen[obj] end
+  local s = seen or {}
+  local res = setmetatable({}, getmetatable(obj))
+  s[obj] = res
+  for k, v in pairs(obj) do res[copy(k, s)] = copy(v, s) end
+  return res
+end
+
+--------------------------------------------------------------------------------
 -- save/load
+--------------------------------------------------------------------------------
+
 function load_addon(data)
   load_addon_set(data, "add_clear_for_small_obj", false)
   load_addon_set(data, "add_select_ignore_tags", true)
@@ -971,20 +980,53 @@ function save_addon_get(data, addon, suffix)
   end
 end
 
+--------------------------------------------------------------------------------
 -- button handling
-function get_bg_color(enable)
+--------------------------------------------------------------------------------
+
+--function get_bg_color(enable) -- not in use ,would be similar
+function get_font_color(enable)
   if enable == true then
-    return button_bg_color_on
+    return add_color_green
   else
-    return button_bg_color_off
+    return add_color_black
   end
 end
 
-function addon_updateButton(id, status)
-  self.editButton({index=id, font_color=get_bg_color(status)})
+function addon_createButton(idx, func_name, adds, args)
+  if idx == nil or func_name == nil then
+    print("Failed to create button! Index: ",idx,", function: ",func_name)
+    return
+  end
+  -- create base args
+  local button_args = {
+    label="", function_owner=self, position=copy(add_position), rotation={0,180,0},
+    height=350, width=1500, font_size=250, font_color={1,1,1}, color={0,0,0},
+    click_function="buttonClick_"..func_name
+  }
+  button_args.position[3] = add_position[3] + distance * idx
+  -- update args
+  if args ~= nil then
+    for key, arg in pairs(args) do
+      button_args[key] = arg
+    end
+  end
+  -- update addon args
+  if adds.font_status ~= nil then
+    button_args.font_color = get_font_color(_G["add_select_"..adds.font_status.."_status"])
+  end
+  if adds.move ~= nil then
+    button_args.position[1] = button_args.position[1] + adds.move
+  end
+  -- create
+  self.createButton(button_args)
+  list_button_id()
 end
 
--- common button update operation
+function addon_updateButton(id, status)
+  self.editButton({index=id, font_color=get_font_color(status)})
+end
+
 function buttonClick_addon(addon, func, args)
   _G[addon.."_status"] = not _G[addon.."_status"]
   addon_updateButton(_G[addon.."_id"], _G[addon.."_status"])
@@ -1011,7 +1053,8 @@ function buttonClick_selectZones()
     -- TODO
 end
 
-function buttonClick_createButtons()
+--
+function buttonClick_useObjButtons()
   buttonClick_addon("add_select_addon_on", addon_switch_button_usage)
 end
 
