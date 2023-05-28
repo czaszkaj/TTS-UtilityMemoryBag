@@ -270,7 +270,10 @@ end
 
 
 function updateSave()
-    local data_to_save = {["ml"]=memoryList,["groupName"]=memoryGroupName:get()}
+    local data_to_save = {
+      ["ml"]=memoryList,
+      ["groupName"]=memoryGroupName:get(),
+      ["addon"]=save_addon()}
     saved_data = JSON.encode(data_to_save)
     self.script_state = saved_data
 end
@@ -950,13 +953,13 @@ function load_addon_set(data, addon, suffix)
 end
 
 function save_addon()
-  local data_to_save = {}
-  save_addon_get(data_to_save, "add_clear_for_small_obj", false)
-  save_addon_get(data_to_save, "add_select_ignore_tags", true)
-  save_addon_get(data_to_save, "add_select_tag", true)
-  save_addon_get(data_to_save, "add_select_zone", true)
-  save_addon_get(data_to_save, "add_select_addon_on", true)
-  return JSON.encoed(data_to_save)
+  addon_to_save = {}
+  save_addon_get(addon_to_save, "add_clear_for_small_obj", false)
+  save_addon_get(addon_to_save, "add_select_ignore_tags", true)
+  save_addon_get(addon_to_save, "add_select_tag", true)
+  save_addon_get(addon_to_save, "add_select_zone", true)
+  save_addon_get(addon_to_save, "add_select_addon_on", true)
+  return addon_to_save
 end
 
 function save_addon_get(data, addon, suffix)
@@ -982,9 +985,15 @@ function addon_updateButton(id, status)
 end
 
 -- common button update operation
-function buttonClick_addon(addon)
+function buttonClick_addon(addon, func, args)
   _G[addon.."_status"] = not _G[addon.."_status"]
   addon_updateButton(_G[addon.."_id"], _G[addon.."_status"])
+  --temporary leava for not implemented buttons
+  if func == nil  then
+    return
+  end
+  func(args)
+  updateSave()
 end
 
 function buttonClick_ignoreTags()
@@ -1003,7 +1012,10 @@ function buttonClick_selectZones()
 end
 
 function buttonClick_createButtons()
-  buttonClick_addon("add_select_addon_on")
+  buttonClick_addon("add_select_addon_on", addon_switch_button_usage)
+end
+
+function addon_switch_button_usage()
   removeButtonsOnAllObjects()
   createButtonsOnAllObjects(false)
 end
