@@ -18,5 +18,6 @@ Want to contribute? Create an issue or fork the code on GitHub and submit a pull
 * ignore objects with tags [ONGOING]
 * select objects with tags (by default) [ONGOING]
 * select objects from zones (by default) [ONGOING]
+
 **TODO**
 * use "class" instead of global variables
