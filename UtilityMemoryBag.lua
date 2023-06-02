@@ -16,10 +16,35 @@ CONFIG = {
 
 --[[ Addons Data ]]-------------------------------------------------------
 -- ON/OFF
-add_select_ignore_tags = true -- use to turn on/off the addon
-add_select_tag = true   -- use to turn on/off the addon
-add_select_zone = true  -- use to turn on/off the addon
-add_select_addon_on =   -- used for enablig/disabling obj buttons
+--[[
+Remove buttons on object after selecting one to move.
+Helps for small objects that are smaller then sreated buttons.
+--]]
+--?addon_handler = {}
+local enable_addons = {
+  clear_for_small_obj = true
+  -- Do not create buttons or add tagged objects to bag.
+  ignore_tags = true
+  -- Select tagged obejcts by default
+  select_tags = true
+  -- Select all objects from provided zone guid by default
+  select_zones = true
+  -- Create buttons for objects
+  select_buttons = true
+}
+add_clear_for_small_obj = true
+-- Do not create buttons or add tagged objects to bag.
+add_select_ignore_tags = true
+-- Select tagged obejcts by default
+add_select_tag = true
+-- Select all objects from provided zone guid by default
+add_select_zone = true
+--[[
+is any selection addon on
+used also for enabling/disablig Buttons
+the name should be updated
+--]]
+add_select_addon_on =
   add_select_tag or
   add_select_zone
 
@@ -31,17 +56,15 @@ add_color_white = {0,0,0}
 add_position = {1.6,0.3,2.2}
 -- distance between buttons
 distance = 0.8
+-- base button count
+add_base_bag_button_count = 0
 -- id of first button id of an objects, after bag buttons
-first_obj_button_id = 9
---[[
-Remove buttons on object after selecting one to move.
-Helps for small objects that are smaller then sreated buttons.
---]]
-add_clear_for_small_obj = true
+add_first_obj_button_id = 0
+
 --[[
 Do not create buttons or add tagged objects to bag.
 --]]
-add_select_ignore_tags_id = 4
+add_select_ignore_tags_id = 1
 add_select_ignore_tags_status = false
 add_select_ignore_tags_input_id = 1
 add_select_ignore_tags_input_text = ""
@@ -49,25 +72,25 @@ add_select_ignore_tags_input_correct = false
 --[[
 Select tagged obejcts by default
 --]]
-add_select_tag_id = 5
+add_select_tag_id = 2
 add_select_tag_status = false
 add_select_tag_input_id = 2
 add_select_tag_input_text = ""
 add_select_tag_input_correct = false
 --[[
-Select all objects from provided zone guid
+Select all objects from provided zone guid by default
 --]]
-add_select_zone_id = 6
+add_select_zone_id = 3
 add_select_zone_status = false
 add_select_zone_input_id = 3
 add_select_zone_input_guids = nil
 add_select_zone_input_correct = false
 --[[
-is anny selection addon on
+is any selection addon on
 used also for enabling/disablig Buttons
 the name should be updated
 --]]
-add_select_addon_on_id = 7
+add_select_addon_on_id = 4
 add_select_addon_on_status = true
 add_select_addon_on_input_id = 4
 add_select_addon_on_input_text = nil
@@ -413,6 +436,10 @@ function getAllObjectsInMemory()
     -- return getAllObjects()
 end
 
+function getAllObjectsForMemory()
+  return getAllObjects() -- TODO extend getAllObjectsForMemory
+end
+
 --Creates selection buttons on objects
 function createButtonsOnAllObjects(move)
     if move == false and add_select_addon_on_status == false then
@@ -420,12 +447,14 @@ function createButtonsOnAllObjects(move)
     end
 
     buttonIndexMap = {}
-    local howManyButtons = first_obj_button_id
+    local howManyButtons = 0
 
     local objsToHaveButtons = {}
     if move == true then
         objsToHaveButtons = getAllObjectsInMemory()
     else
+        howManyButtons = #self.getButtons()
+        add_first_obj_button_id = howManyButtons
         objsToHaveButtons = getAllObjects()
     end
 
@@ -508,6 +537,7 @@ function createSetupActionButtons(move)
                 font_size=250, color={0,0,0}, font_color={1,0.25,0.25}
             })
         end
+        add_base_bag_button_count = #self.getButtons()
 
         --Addon Selection Buttons
         if add_select_ignore_tags == true then
@@ -1051,7 +1081,7 @@ function addon_createButton(idx, func_name, adds, args)
       button_args[key] = arg
     end
   end
-  -- update addon args
+  -- update addon args: adds
   if adds.font_status ~= nil then
     button_args.font_color = get_font_color(_G["add_select_"..adds.font_status.."_status"])
   end
@@ -1083,7 +1113,7 @@ function addon_createInput(idx, func_name, adds, args)
       input_args[key] = arg
     end
   end
-  --[[update addon args
+  --[[update addon args: adds
   if adds.font_status ~= nil then
     button_args.font_color = get_font_color(_G["add_select_"..adds.font_status.."_status"])
   end
@@ -1098,7 +1128,7 @@ function buttonClick_addon(addon, func, args)
   addon_get_input(addon) -- TODO redo
   if addon_check_loaded_input(addon) ~= false then
     _G[addon.."_status"] = not _G[addon.."_status"]
-    addon_updateButton(_G[addon.."_id"], _G[addon.."_status"])
+    addon_updateButton(_G[addon.."_id"]+add_base_bag_button_count, _G[addon.."_status"])
   end
   --temporary leava for not implemented buttons
   if func == nil  then
@@ -1162,9 +1192,274 @@ function addon_switch_button_usage()
   createButtonsOnAllObjects(false)
 end
 
-function removeButtonsOnAllObjects()
-  buttons = self.getButtons()
-  for i = #buttons - 1, first_obj_button_id, -1 do
-    self.removeButton(i)
+
+--[[
+ Addon "calss" to handle data and functionality
+
+{remove_move_button, show_options, "add_select_ignore_tags", "add_select_tag",
+ "add_select_zone", "add_select_addon_on"}
+
+name   - string
+    on     - bool
+    input  - bool
+        id      - int
+        label   - string
+        valid   - bool
+        type    - text|guid
+    button - bool
+        id    - int
+        label - string
+    func
+        createButton()
+        createInput()
+        buttonClick()
+        getInput()
+        validateInput()
+        updateButton(args{})
+        getStatusColor(background=false, font=false)
+v setting
+v    sepparator = ";"
+v    addons_order = {"add_select_ignore_tags", "add_select_tag",
+     "add_select_zone", "add_select_addon_on"}
+v    button
+        bg
+            status      - bool
+            default_on  - bool
+            color_on    - {x,y,z}
+            color_off   - {x,y,z}
+        font
+            status      - bool
+            color_on    - {x,y,z}
+            color_off   - {x,y,z}
+v    input
+        bg
+            status      - bool
+            default_on  - bool
+            color_on    - {x,y,z}
+            color_off   - {x,y,z}
+        font
+            status      - bool
+            color_on    - {x,y,z}
+            color_off   - {x,y,z}
+v    colors
+        green = {0,1,0}
+        black = {1,1,1}
+        white = {0,0,0}
+v    position
+        start = {1.6,0.3,2.2}
+        dist  = 0.8
+v    base_values
+        button_count
+        input_count
+func
+    submit()
+    createAddons()
+    toggleAddon()
+    createButton()
+    createInput()
+    addAddon(...)
+    getBagBaseButtonCount()
+    getBagAllButtonCount()
+    getBagBaseInputCount()
+    buttonClick_default(addon, func, args) --buttonClick_addon
+    onSave() --> UpdateSave()
+    onLoad(...)
+    ?copy(...)?
+
+--]]
+AddonHandler = {}
+AddonHandler.bagObj = self
+AddonHandler.settings = {
+--    sepparator = ";"
+    -- order from top !!!
+--    buttons_order = {"add_select_ignore_tags", "add_select_tag",
+--         "add_select_zone", "add_select_addon_on"}
+    color = {
+      green = {0,1,0}
+      black = {1,1,1}
+      white = {0,0,0}
+    }
+    position = {
+      start = {1.6,0.3,2.2}
+      dist  = 0.8
+    }
+    button = {
+        bg = {
+           status = false
+           default_on = false
+           color_on = nil
+           color_off = nil
+         }
+        font = {
+           status = false
+           color_on = nil
+           color_off = nil
+         }
+        }
+    input = {
+        bg = {
+           status = false
+           default_on = false
+           color_on = nil
+           color_off = nil
+         }
+        font = {
+           status = false
+           color_on = nil
+           color_off = nil
+         }
+        }
+    base_button_count = 0;
+    base_input_count = 0;
+  }
+
+function AddonHandler:new(o)
+  o = o or {}   -- create object if user does not provide one
+  setmetatable(o, self)
+  self.__index = self
+  return o
+end
+
+function AddonHandler:Init(load_addons)
+  self.addon = {}
+  self.count_enabled = 0;
+  -- Init all
+  for key, value in pairs(load_addons) do
+    self.addon[key] = {}
+    self.addon[key].enabled = false -- addon enabled
+    self.addon[key].state = false -- addon selected
+    self.addon[key].input = nil
+    --{id = 0, label = "Missing.", valid = false, type = "text"},
+    self.addon[key].button = nil
+    --{id = 0, label = "Missing.", valid = false},
+    self.addon[key].value = { "" }}
+  end
+
+  -- create and enable
+  if load_addons.clear_for_small_obj then
+    self.AddAddon(name="clear_for_small_obj")
+  end
+  if load_addons.ignore_tags then
+    self.AddAddon(name="ignore_tags", button = true, input = true)
+  end
+  if load_addons.select_tags then
+    self.AddAddon(name="select_tags", button = true, input = true)
+  end
+  if load_addons.select_zones then
+    self.AddAddon(name="select_zones", button = true, input = true, input_type = "guid")
+  end
+  if load_addons.select_buttons then
+    self.AddAddon(name="select_buttons", button = true)
   end
 end
+
+function AddonHandler:NameToStr(name)
+  return string.gsub(string.upper(name),"_"," ")[1]
+end
+
+function AddonHandler:AddAddon(name, button, input, input_type="text", state=false)
+  print("TODO")
+  self.addon[key].state = state
+  self.addon[key].enabled = true
+  self.addon[key].position = self.setting.position.start
+
+  if button then
+    self.addon[key].button = {id = 0, label = self:NameToStr(name), valid = false}
+  end
+  if input then
+    self.addon[key].input = {id = 0, label = self:NameToStr(name), valid = false, type = input_type},
+  else
+    self.addon[key].position[1] = 0
+  end
+  self.count_enabled = self.count_enabled + 1
+  self.addon[key].id = self.count_enabled -- count from 1
+end
+
+function AddonHandler::GetBagBaseButtonCount()
+  return self.setting.base_button_count
+end
+
+function AddonHandler::GetBagAllButtonCount()
+  return self.setting.base_button_count + self.count_enabled
+end
+
+function AddonHandler::GetBagBaseInputCount()
+  return self.setting.base_input_count
+end
+
+-- remove all object buttons for selection
+function AddonHandler::removeButtonsOnAllObjects()
+  buttons = self.bagObj.getButtons()
+  for i = #buttons - 1, self:GetBagAllButtonCount(), -1 do
+    -- remove last
+    self.bagObj.removeButton(i)
+  end
+end
+
+-- use to ignore button creation
+function AddonHandler::validObject(obj)
+  if self.addon.ignore_tags.enabled then
+    return not obj.hasTag(self.addon.ignore_tags.value[1])
+  end
+end
+
+-- use during setup to select obj by default
+function AddonHandler::selectObject(obj)
+  if self.addon.ignore_tags.enabled then
+    return not obj.hasTag(self.addon.ignore_tags.value[1])
+  end
+  if self.addon.select_tags.enabled then
+    return obj.hasTag(self.addon.select_tags.value[1])
+  end
+end
+
+----------
+-- TODO --
+----------
+
+function AddonHandler::CreateUI()
+  for name, obj in self.addon do
+    if obj.enabled then
+      if obj.button ~= nil then
+        print("TODO")
+
+      end
+      if obj.input ~= nil then
+        print("TODO")
+
+      end
+    end
+  end
+end
+
+function AddonHandler::ButtonClick_default(addon, func, args)
+  print("TODO")
+  -----------------------------------------------------
+  addon = "add_select_"..addon
+  addon_get_input(addon) -- TODO redo
+  if addon_check_loaded_input(addon) ~= false then
+    _G[addon.."_status"] = not _G[addon.."_status"]
+    addon_updateButton(_G[addon.."_id"]+add_base_bag_button_count, _G[addon.."_status"])
+  end
+  --temporary leava for not implemented buttons
+  if func == nil  then
+    return
+  end
+  func(args)
+  updateSave()
+end
+
+function AddonHandler::inputChange_default(addon, func, args)
+  print("TODO")
+end
+
+function AddonHandler::OnSave()
+  print("TODO")
+  return {}
+end
+
+function AddonHandler::OnLoad(data)
+  print("TODO")
+end
+-- Create Addon Handler
+local addon_handler = AddonHandler:new()
