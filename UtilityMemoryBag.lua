@@ -1321,6 +1321,18 @@ function AddonHandler:new(o)
 end
 
 function AddonHandler:Init(load_addons)
+  -- set settings
+  -- button
+  self.settings.button.bg.color_on = self.settings.color.black
+  self.settings.button.bg.color_off = self.settings.color.black
+  self.settings.button.font.color_on = self.settings.color.green
+  self.settings.button.font.color_off = self.settings.color.white
+  -- input
+  self.settings.button.bg.color_on = self.settings.color.white
+  self.settings.button.bg.color_off = self.settings.color.white
+  self.settings.button.font.color_on = self.settings.color.black
+  self.settings.button.font.color_off = self.settings.color.black
+  -- enable addons
   self.addon = {}
   self.count_enabled = 0;
   -- Init all
@@ -1351,23 +1363,32 @@ function AddonHandler:Init(load_addons)
   if load_addons.select_buttons then
     self.AddAddon(name="select_buttons", button = true)
   end
+  if self.enabled_count > 0 then
+    self.AddAddon(name="show_hide", button = true)
+  end
 end
 
 function AddonHandler:NameToStr(name)
   return string.gsub(string.upper(name),"_"," ")[1]
 end
 
-function AddonHandler:AddAddon(name, button, input, input_type="text", state=false)
-  print("TODO")
+function AddonHandler:AddAddon(name, button, input, input_type="tag", state=false, label=nil)
   self.addon[key].state = state
   self.addon[key].enabled = true
   self.addon[key].position = self.setting.position.start
+  self.addon[key].getColor = function (on=self.settings.color.green, off=self.settings.color.white)
+    if self.state then
+      return on
+    else
+      return off
+    end
+  end
 
   if button then
-    self.addon[key].button = {id = 0, label = self:NameToStr(name), valid = false}
+    self.addon[key].button = {id = 0, label = label or self:NameToStr(name), valid = false}
   end
   if input then
-    self.addon[key].input = {id = 0, label = self:NameToStr(name), valid = false, type = input_type},
+    self.addon[key].input = {id = 0, label = label or self:NameToStr(name), valid = false, type = input_type},
   else
     self.addon[key].position[1] = 0
   end
@@ -1413,27 +1434,78 @@ function AddonHandler::selectObject(obj)
   end
 end
 
-----------
--- TODO --
-----------
-
 function AddonHandler::CreateUI()
+  -- create Show/Hide button
+  if self.enabled_count > 0 then
+    self.createButton("show_hide", self.addon.show_hide)
+  else
+    return
+  end
+  -- create addon buttons
   for name, obj in self.addon do
     if obj.enabled then
       if obj.button ~= nil then
-        print("TODO")
-
+        self.createButton(name, obj)
       end
       if obj.input ~= nil then
-        print("TODO")
-
+        self.createInput(name, obj)
       end
     end
   end
 end
+function AddonHandler:getColor(element, type, status)
+  if status then
+    return self.settings[element][type].color_on
+  else
+    return self.settings[element][type].color_off
+  end
+end
 
-function AddonHandler::ButtonClick_default(addon, func, args)
-  print("TODO")
+function AddonHandler::createButton(name, args)
+  local button_args = {
+    label=args.label,
+    position=args.position,
+    rotation={0,180,0},
+    height=350,
+    width=1550,
+    font_size=250,
+    font_color=self.getColor("button", "font", args.status),
+    color=self.getColor("button", "bg", args.status),
+    function_owner=self.bagObj,
+    click_function=self.createButtonClick(name, args)
+  }
+  -- move buttton up per distance
+  button_args.position[3] = button_args.position[3] + self.setting.positon.dist * args.id
+  self.createButton(button_args)
+end
+
+function AddonHandler::createInput(name, args)
+    local input_args = {
+      label=args.label,
+      position=args.position,
+      rotation={0,180,0},
+      aligment = 1,
+      height=350,
+      width=1550,
+      font_size=250,
+      font_color=self.getColor("input", "font", args.status),
+      color=self.getColor("input", "bg", args.status),
+      function_owner=self.bagObj,
+      input_function=self.createInputChange(name, args)
+    }
+    -- move buttton up per distance
+    input_args.position[1] = 0 -- ?
+    button_args.position[3] = button_args.position[3] + self.setting.positon.dist * args.id
+    self.createInput(input_args)
+end
+
+----------
+-- TODO --
+----------
+
+function AddonHandler::createButtonClick(name, args)
+  print("TODO") -- return function -- set status and value?
+
   -----------------------------------------------------
   addon = "add_select_"..addon
   addon_get_input(addon) -- TODO redo
@@ -1449,8 +1521,8 @@ function AddonHandler::ButtonClick_default(addon, func, args)
   updateSave()
 end
 
-function AddonHandler::inputChange_default(addon, func, args)
-  print("TODO")
+function AddonHandler::createInputChange(name, args)
+  print("TODO") -- return function -- set status and value?
 end
 
 function AddonHandler::OnSave()
@@ -1462,4 +1534,6 @@ function AddonHandler::OnLoad(data)
   print("TODO")
 end
 -- Create Addon Handler
+enable_addons["show_hide"] = {}
 local addon_handler = AddonHandler:new()
+addon_handler:Init(enable_addons)
