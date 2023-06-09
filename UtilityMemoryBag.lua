@@ -938,14 +938,14 @@ end
 function AddonHandler:Init(load_addons)
   -- set settings
   -- button
-  self.settings.button.bg.color_on = self.settings.color.black
-  self.settings.button.bg.color_off = self.settings.color.black
-  self.settings.button.font.color_on = self.settings.color.green
+  self.settings.button.bg.color_on    = self.settings.color.black
+  self.settings.button.bg.color_off   = self.settings.color.black
+  self.settings.button.font.color_on  = self.settings.color.green
   self.settings.button.font.color_off = self.settings.color.white
   -- input
-  self.settings.button.bg.color_on = self.settings.color.white
-  self.settings.button.bg.color_off = self.settings.color.white
-  self.settings.button.font.color_on = self.settings.color.black
+  self.settings.button.bg.color_on    = self.settings.color.white
+  self.settings.button.bg.color_off   = self.settings.color.white
+  self.settings.button.font.color_on  = self.settings.color.black
   self.settings.button.font.color_off = self.settings.color.black
   -- enable addons
   self.addon = {}
@@ -1072,6 +1072,7 @@ function AddonHandler:CreateUI()
     end
   end
 end
+
 function AddonHandler:getColor(element, type, status)
   if status then
     return self.settings[element][type].color_on
